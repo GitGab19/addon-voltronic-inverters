@@ -37,6 +37,8 @@ RUN rm -rf repo
 COPY run.sh /run.sh
 RUN chmod a+x /run.sh
 
+RUN sed -i '1i#include <string>' /opt/inverter-cli/inverter.h
+
 # Build the inverter CLI
 RUN cd /opt/inverter-cli && \
     mkdir bin && \
