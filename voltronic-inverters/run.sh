@@ -18,21 +18,27 @@ fi
 
 # Update the inverter.conf file
 DEVICE=$(bashio::config 'device_type')
-case "${DEVICE}" in
-    serial)
-        DEVICE_PATH="/dev/ttyS0"
-        ;;
-    usb-serial)
-        DEVICE_PATH="/dev/ttyUSB0"
-        ;;
-    usb)
-        DEVICE_PATH="/dev/hidraw0"
-        ;;
-    *)
-        bashio::log.error "Invalid device type: ${DEVICE}"
-        exit 1
-        ;;
-esac
+CUSTOM_DEVICE_PATH=$(bashio::config 'device_path')
+
+if [ -n "${CUSTOM_DEVICE_PATH}" ]; then
+    DEVICE_PATH="${CUSTOM_DEVICE_PATH}"
+else
+    case "${DEVICE}" in
+        serial)
+            DEVICE_PATH="/dev/ttyS0"
+            ;;
+        usb-serial)
+            DEVICE_PATH="/dev/ttyUSB0"
+            ;;
+        usb)
+            DEVICE_PATH="/dev/hidraw0"
+            ;;
+        *)
+            bashio::log.error "Invalid device type: ${DEVICE}"
+            exit 1
+            ;;
+    esac
+fi
 
 echo "[DEBUG] Updating inverter.conf file with device: $DEVICE_PATH"
 sed -i "s|^device=.*|device=${DEVICE_PATH}|" "$INVERTER_CONFIG" || {
