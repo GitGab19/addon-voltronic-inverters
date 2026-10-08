@@ -32,6 +32,7 @@ atomic_bool ups_status_changed(false);
 atomic_bool ups_qmod_changed(false);
 atomic_bool ups_qpiri_changed(false);
 atomic_bool ups_qpigs_changed(false);
+atomic_bool ups_qpigs2_changed(false);
 atomic_bool ups_qpiws_changed(false);
 atomic_bool ups_cmd_executed(false);
 
@@ -123,6 +124,13 @@ int eeprom_version;
 int pv_charging_power;
 char device_status2[4]; // 3 bytes of status + null terminator
 
+// Reply QPIGS2 (PV2 data, dual-MPPT models only; stays 0 unless a real reply arrives)
+float pv2_input_current = 0;
+float pv2_input_voltage = 0;
+float pv2_input_watts = 0;
+int pv2_charging_power = 0;
+int pv_total_charging_power = 0;
+
 // Reply2
 float grid_voltage_rating;
 float grid_current_rating;
@@ -209,6 +217,7 @@ float batt_redischarge_voltage;
             int mode = ups->GetMode();
             string *reply1   = ups->GetQpigsStatus();
             string *reply2   = ups->GetQpiriStatus();
+            string *reply3   = ups->GetQpigs2Status();
             string *warnings = ups->GetWarnings();
 
             if (reply1 && reply2 && warnings) {
@@ -262,8 +271,21 @@ float batt_redischarge_voltage;
                        &topology,                 // ^ Topology  0 transformerless 1 transformer
                        &out_mode,                 // ^ Output mode 00: single machine output, 01: parallel output, 02: Phase 1 of 3 Phase output, 03: Phase 2 of 3 Phase output, 04: Phase 3 of 3 Phase output
                        &batt_redischarge_voltage);// * Battery re-discharge voltage
-                                                  // ^ PV OK condition for parallel
-                                                  // ^ PV power balance
+                                                   // ^ PV OK condition for parallel
+                                                   // ^ PV power balance
+
+                // Parse QPIGS2 (PV2) only when the inverter actually answered it
+                // (dual-MPPT models). Reply format: "<current> <voltage> <charging power>".
+                if (reply3 && !reply3->empty()) {
+                    sscanf(reply3->c_str(), "%f %f %d",
+                           &pv2_input_current,    // * PV2 Input current for battery
+                           &pv2_input_voltage,    // * PV2 Input voltage
+                           &pv2_charging_power);  // * PV2 charging power
+
+                    pv2_input_current = pv2_input_current * ampfactor;
+                    pv2_input_watts = (scc_voltage * pv2_input_current) * wattfactor;
+                    pv_total_charging_power = pv_charging_power + pv2_charging_power;
+                }
 
                 // There appears to be a discrepancy in actual DMM measured current vs what the meter is
                 // telling me it's getting, so lets add a variable we can multiply/divide by to adjust if
@@ -313,6 +335,13 @@ float batt_redischarge_voltage;
                 printf("  \"Battery_voltage_offset_for_fans_on\":%d,\n", battery_voltage_offset_for_fans_on); // QPIGS
                 printf("  \"Eeprom_version\":%d,\n", eeprom_version); // QPIGS
                 printf("  \"PV_charging_power\":%d,\n", pv_charging_power); // QPIGS
+                if (reply3 && !reply3->empty()) {
+                    printf("  \"PV2_in_current\":%.1f,\n", pv2_input_current); // QPIGS2
+                    printf("  \"PV2_in_voltage\":%.1f,\n", pv2_input_voltage); // QPIGS2
+                    printf("  \"PV2_in_watts\":%.1f,\n", pv2_input_watts);    // QPIGS2
+                    printf("  \"PV2_charging_power\":%d,\n", pv2_charging_power); // QPIGS2
+                    printf("  \"PV_total_charging_power\":%d,\n", pv_total_charging_power);
+                }
                 printf("  \"Charging_to_floating_mode\":%c,\n", device_status2[0]);   // QPIGS
                 printf("  \"Switch_On\":%c,\n", device_status2[1]);    // QPIGS
                 printf("  \"Dustproof_installed\":%c,\n", device_status2[2]);     // QPIGS
@@ -331,6 +360,7 @@ float batt_redischarge_voltage;
                 // Delete reply string so we can update with new data when polled again...
                 delete reply1;
                 delete reply2;
+                delete reply3;
 
                 if(runOnce) {
                     // there is no thread -- ups->terminateThread();

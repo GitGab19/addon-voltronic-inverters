@@ -13,6 +13,7 @@ cInverter::cInverter(std::string devicename) {
   device = devicename;
   status1[0] = 0;
   status2[0] = 0;
+  status3[0] = 0;
   warnings[0] = 0;
   mode = 0;
 }
@@ -27,6 +28,13 @@ string *cInverter::GetQpigsStatus() {
 string *cInverter::GetQpiriStatus() {
   m.lock();
   string *result = new string(status2);
+  m.unlock();
+  return result;
+}
+
+string *cInverter::GetQpigs2Status() {
+  m.lock();
+  string *result = new string(status3);
   m.unlock();
   return result;
 }
@@ -231,6 +239,20 @@ void cInverter::poll() {
         m.unlock();
         ups_qpigs_changed = true;
       }
+    }
+
+    // Reading QPIGS2 status (PV2 data, only present on dual-MPPT models).
+    // Best-effort: a NAK, timeout or malformed reply must never stall the poll
+    // loop, so mark this changed after the first attempt regardless of outcome
+    // and simply leave status3 empty on single-MPPT inverters.
+    if (!ups_qpigs2_changed) {
+      if (query("QPIGS2") &&
+    strcmp((char *)&buf[1], "NAK") != 0) {
+        m.lock();
+        strcpy(status3, (const char*)buf+1);
+        m.unlock();
+      }
+      ups_qpigs2_changed = true;
     }
 
     // Reading QPIRI status
