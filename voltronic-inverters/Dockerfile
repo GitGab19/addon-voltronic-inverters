@@ -39,6 +39,9 @@ RUN chmod a+x /run.sh
 
 RUN sed -i '1i#include <string>' /opt/inverter-cli/inverter.h
 
+# Fix invalid unit for the "Battery voltage offset for fans on" sensor
+RUN sed -i 's/"10mV"/"V"/' /opt/inverter-mqtt/mqtt-init.sh
+
 # Build the inverter CLI
 RUN cd /opt/inverter-cli && \
     mkdir bin && \
