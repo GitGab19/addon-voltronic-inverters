@@ -25,9 +25,9 @@ This add-on requires some configuration to function properly. Below are the conf
 | `mqtt_broker_host` | The MQTT broker host address.                | `core-mosquitto`|
 | `mqtt_username`    | The username for the MQTT broker.            | `mqtt_user`     |
 | `mqtt_password`    | The password for the MQTT broker.            | `mqtt_password` |
-| `device_name"`     | The device name which is used for MQTT.      | `device_name` |
-| `device_type`      | The type of device connection. Can be one of `serial`, `usb-serial`, or `usb`. | 
-`usb`           |
+| `device_name`      | The device name which is used for MQTT.      | `device_name` |
+| `device_type`      | The type of device connection. Can be one of `serial`, `usb-serial`, or `usb`. | `usb` |
+| `device_path`      | Optional. Override the auto-detected device with a specific path (e.g. when your inverter is on `hidraw1` or `ttyUSB1`). Leave empty to map from `device_type`. | `/dev/hidraw1` |
 
 ### Example Configuration
 ```yaml
@@ -36,6 +36,7 @@ mqtt_username: "mqtt_user"
 mqtt_password: "mqtt_password"
 device_name: "device_name"
 device_type: "usb"
+device_path: ""
 ```
 
 ## Updating Configuration
