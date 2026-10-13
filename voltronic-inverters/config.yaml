@@ -1,13 +1,16 @@
 name: "Voltronic"
 description: "Monitor and control Voltronic based inverters from Home Assistant."
-version: "1.0.1"
+version: "1.1.0"
 slug: "voltronic"
 init: false
 udev: true
 devices:
   - /dev/ttyS0
+  - /dev/ttyS1
   - /dev/ttyUSB0
+  - /dev/ttyUSB1
   - /dev/hidraw0
+  - /dev/hidraw1
 arch:
   - aarch64
   - amd64
@@ -21,6 +24,7 @@ options:
   mqtt_password: "mqtt_password"
   device_name: "device_name"
   device_type: usb
+  device_path: ""
 
 schema:
   mqtt_broker_host: str
@@ -28,3 +32,4 @@ schema:
   mqtt_password: str
   device_name: str
   device_type: list(serial|usb-serial|usb)
+  device_path: str
